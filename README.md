@@ -1,0 +1,880 @@
+# LOCAMO
+
+A local-first memo app that runs entirely in a single HTML file. No server, no build tools, no dependencies — just open it in your browser and start writing.
+
+## Screenshots
+
+| Dark | Light |
+|------|-------|
+| ![Dark mode](screenshots/dark.png) | ![Light mode](screenshots/light.png) |
+
+## Features
+
+- **Self-contained single HTML file** — UI, logic, and data all in one file ([TiddlyWiki](https://tiddlywiki.com/)-style)
+- **Works offline** via `file://` protocol — no server needed
+- **Organize memos by pages** — add, delete, rename
+- **Plain text editor** with monospace font
+- **Save in place** with `⌘S` / `Ctrl+S` using the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API)
+- **Dark / Light theme** toggle
+- **Unsaved changes indicator** — save hint pulses orange when you have unsaved edits
+- **Customizable app title** — click the title to rename
+
+## Requirements
+
+- **Google Chrome** or **Microsoft Edge** (File System Access API is required)
+
+> [!NOTE]
+> Firefox and Safari do not support the File System Access API.
+
+## Setup
+
+### Option A: Clone this repository
+
+```sh
+git clone https://github.com/daiaoki/locamo.git
+cp locamo/locamo.html ~/Documents/locamo.html
+```
+
+### Option B: Quick start (copy & paste into terminal)
+
+```sh
+cat > ~/Documents/locamo.html << 'LOCAMO_EOF'
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>locamo</title>
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #191919;
+  --bg-sidebar: #141414;
+  --bg-active: #2a2a2a;
+  --bg-hover: #222;
+  --bg-input: #1e1e1e;
+  --text-primary: #d4d4d4;
+  --text-secondary: #777;
+  --text-muted: #555;
+  --border: #2a2a2a;
+  --accent: #888;
+  --danger: #c45;
+  --kbd-border: #333;
+  --toast-bg: rgba(40, 40, 40, 0.92);
+  --unsaved-color: #e8a44a;
+  --unsaved-border: rgba(232, 164, 74, 0.4);
+}
+
+[data-theme="light"] {
+  --bg-primary: #fff;
+  --bg-sidebar: #f5f5f5;
+  --bg-active: #e8e8e8;
+  --bg-hover: #eee;
+  --bg-input: #fff;
+  --text-primary: #2c2c2c;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --border: #e0e0e0;
+  --accent: #666;
+  --danger: #d44;
+  --kbd-border: #ccc;
+  --toast-bg: rgba(255, 255, 255, 0.92);
+  --unsaved-color: #c47a15;
+  --unsaved-border: rgba(196, 122, 21, 0.5);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 1fr 28px;
+  height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  grid-row: 1;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 12px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sidebar-header > span:first-child {
+  margin-right: auto;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-left: -4px;
+}
+
+.sidebar-header > span:first-child:hover {
+  background: var(--bg-hover);
+}
+
+.sidebar-title-input {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: var(--bg-input);
+  border: 1px solid var(--text-muted);
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin-right: auto;
+  outline: none;
+  font-family: var(--font-sans);
+}
+
+kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  border: 1px solid var(--kbd-border);
+  border-radius: 3px;
+  box-shadow: 0 1px 0 var(--kbd-border);
+}
+
+.btn-add-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-add-page:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.category-list {
+  list-style: none;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 6px 12px;
+}
+
+.category-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.category-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s;
+  gap: 4px;
+}
+
+.category-item:hover {
+  background: var(--bg-hover);
+}
+
+.category-item.active {
+  background: var(--bg-active);
+}
+
+.category-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.category-rename-input {
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--text-muted);
+  border-radius: 3px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  padding: 1px 4px;
+  outline: none;
+}
+
+.btn-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.12s, background 0.12s;
+}
+
+.category-item:hover .btn-delete {
+  color: var(--text-muted);
+}
+
+.btn-delete:hover {
+  color: var(--danger) !important;
+  background: rgba(204, 68, 85, 0.12);
+}
+
+/* Editor */
+.editor {
+  grid-row: 1;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-header {
+  padding: 8px 16px 8px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#save-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transition: color 0.3s;
+}
+
+#save-hint.unsaved {
+  color: var(--unsaved-color);
+  animation: pulse-hint 2s ease-in-out infinite;
+}
+
+#save-hint.unsaved kbd {
+  color: var(--unsaved-color);
+  border-color: var(--unsaved-border);
+  box-shadow: 0 1px 0 var(--unsaved-border);
+}
+
+@keyframes pulse-hint {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.editor-textarea {
+  flex: 1;
+  width: 100%;
+  padding: 16px 20px;
+  border: none;
+  outline: none;
+  resize: none;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.7;
+  tab-size: 2;
+}
+
+.editor-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.editor-textarea:disabled {
+  cursor: default;
+}
+
+/* Empty state */
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Status bar */
+.statusbar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  background: var(--bg-sidebar);
+  user-select: none;
+  -webkit-user-select: none;
+  gap: 12px;
+}
+
+.status-saved {
+  color: #6a8;
+  transition: opacity 0.3s;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  background: var(--toast-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 28px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6a8;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 100;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.hide {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+/* Theme toggle */
+.theme-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.theme-opt {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.theme-opt:hover {
+  color: var(--text-secondary);
+}
+
+.theme-opt.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span id="app-title">LOCAMO</span>
+      <div class="theme-toggle" id="theme-toggle">
+        <button class="theme-opt" data-theme-val="light">Light</button>
+        <button class="theme-opt active" data-theme-val="dark">Dark</button>
+      </div>
+    </div>
+    <ul class="category-list" id="category-list"></ul>
+  </aside>
+
+  <main class="editor" id="editor-area">
+    <div class="editor-header">
+      <span id="editor-header"></span>
+      <span id="save-hint"><kbd>⌘</kbd>+<kbd>S</kbd> to save</span>
+    </div>
+    <textarea class="editor-textarea" id="editor-textarea" placeholder="Click + to create your first page" disabled></textarea>
+  </main>
+
+  <footer class="statusbar">
+    <span id="status-message"></span>
+  </footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="app-data" type="application/json">{
+  "version": 1,
+  "selectedCategoryId": null,
+  "theme": "dark",
+  "title": "LOCAMO",
+  "categories": []
+}</script>
+
+<script>
+(function() {
+  'use strict';
+
+  var appState = { version: 1, selectedCategoryId: null, categories: [] };
+  var isDirty = false;
+  var fileHandle = null;
+
+  // --- Data ---
+
+  function loadData() {
+    var el = document.getElementById('app-data');
+    try {
+      var data = JSON.parse(el.textContent);
+      if (data && data.version && Array.isArray(data.categories)) {
+        return data;
+      }
+    } catch (e) { /* ignore */ }
+    return { version: 1, selectedCategoryId: null, categories: [] };
+  }
+
+  function collectState() {
+    return {
+      version: appState.version,
+      selectedCategoryId: appState.selectedCategoryId,
+      theme: appState.theme || 'dark',
+      title: appState.title || 'LOCAMO',
+      categories: appState.categories.map(function(c) {
+        return { id: c.id, name: c.name, content: c.content, createdAt: c.createdAt };
+      })
+    };
+  }
+
+  // --- Render ---
+
+  function render() {
+    renderCategoryList();
+    renderEditor();
+  }
+
+  function renderCategoryList() {
+    var list = document.getElementById('category-list');
+    list.innerHTML = '';
+
+    appState.categories.forEach(function(cat) {
+      var li = document.createElement('li');
+      li.className = 'category-item' + (cat.id === appState.selectedCategoryId ? ' active' : '');
+      li.setAttribute('data-id', cat.id);
+
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'category-name';
+      nameSpan.textContent = cat.name;
+
+      li.addEventListener('click', function() {
+        selectCategory(cat.id);
+      });
+
+      li.addEventListener('dblclick', function(e) {
+        e.preventDefault();
+        startRename(cat.id);
+      });
+
+      var delBtn = document.createElement('button');
+      delBtn.className = 'btn-delete';
+      delBtn.textContent = '\u00d7';
+      delBtn.title = 'Delete';
+      delBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        deleteCategory(cat.id);
+      });
+
+      li.appendChild(nameSpan);
+      li.appendChild(delBtn);
+      list.appendChild(li);
+    });
+
+    var addLi = document.createElement('li');
+    var addBtn = document.createElement('button');
+    addBtn.className = 'btn-add-page';
+    addBtn.textContent = '+ Add page';
+    addBtn.addEventListener('click', addCategory);
+    addLi.appendChild(addBtn);
+    list.appendChild(addLi);
+  }
+
+  function renderEditor() {
+    var textarea = document.getElementById('editor-textarea');
+    var header = document.getElementById('editor-header');
+    var cat = findCategory(appState.selectedCategoryId);
+
+    if (cat) {
+      header.textContent = cat.name;
+      textarea.value = cat.content;
+      textarea.disabled = false;
+      textarea.placeholder = 'Start writing...';
+    } else {
+      header.textContent = '';
+      textarea.value = '';
+      textarea.disabled = true;
+      textarea.placeholder = appState.categories.length === 0
+        ? 'Click + to create your first page'
+        : 'Select a page to start writing...';
+    }
+  }
+
+  // --- Helpers ---
+
+  function findCategory(id) {
+    if (!id) return null;
+    for (var i = 0; i < appState.categories.length; i++) {
+      if (appState.categories[i].id === id) return appState.categories[i];
+    }
+    return null;
+  }
+
+  function generateId() {
+    return 'cat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+  }
+
+  function markDirty() {
+    isDirty = true;
+    document.getElementById('save-hint').classList.add('unsaved');
+  }
+
+  // --- Category Operations ---
+
+  function addCategory() {
+    var name = prompt('Page name:');
+    if (!name || !name.trim()) return;
+
+    var cat = {
+      id: generateId(),
+      name: name.trim(),
+      content: '',
+      createdAt: new Date().toISOString()
+    };
+
+    appState.categories.push(cat);
+    appState.selectedCategoryId = cat.id;
+    markDirty();
+    render();
+
+    document.getElementById('editor-textarea').focus();
+  }
+
+  function deleteCategory(id) {
+    var cat = findCategory(id);
+    if (!cat) return;
+    if (!confirm('Delete "' + cat.name + '" page?')) return;
+
+    var idx = appState.categories.indexOf(cat);
+    appState.categories.splice(idx, 1);
+
+    if (appState.selectedCategoryId === id) {
+      var newIdx = Math.min(idx, appState.categories.length - 1);
+      appState.selectedCategoryId = newIdx >= 0 ? appState.categories[newIdx].id : null;
+    }
+
+    markDirty();
+    render();
+  }
+
+  function selectCategory(id) {
+    if (appState.selectedCategoryId === id) return;
+
+    appState.selectedCategoryId = id;
+    render();
+
+    document.getElementById('editor-textarea').focus();
+  }
+
+  function startRename(id) {
+    var li = document.querySelector('[data-id="' + id + '"]');
+    if (!li) return;
+    var nameSpan = li.querySelector('.category-name');
+    if (!nameSpan) return;
+
+    var cat = findCategory(id);
+    if (!cat) return;
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'category-rename-input';
+    input.value = cat.name;
+
+    var finished = false;
+    function finish(save) {
+      if (finished) return;
+      finished = true;
+      if (save && input.value.trim()) {
+        cat.name = input.value.trim();
+        markDirty();
+      }
+      render();
+    }
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+
+    input.addEventListener('blur', function() {
+      finish(true);
+    });
+
+    nameSpan.replaceWith(input);
+    input.focus();
+    input.select();
+  }
+
+  // --- Save ---
+
+  async function saveFile() {
+    var state = collectState();
+    var json = JSON.stringify(state, null, 2).replace(/<\//g, '<\\/');
+
+    document.getElementById('app-data').textContent = json;
+
+    var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+    try {
+      if (!fileHandle) {
+        fileHandle = await window.showSaveFilePicker({
+          startIn: 'documents',
+          suggestedName: 'locamo.html',
+          types: [{ description: 'HTML', accept: { 'text/html': ['.html'] } }]
+        });
+      }
+      var writable = await fileHandle.createWritable();
+      await writable.write(html);
+      await writable.close();
+      isDirty = false;
+      document.getElementById('save-hint').classList.remove('unsaved');
+      showStatus('Saved');
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        showStatus('Save failed');
+      }
+    }
+  }
+
+  function showStatus(msg) {
+    var toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className = 'toast show';
+    setTimeout(function() {
+      toast.className = 'toast hide';
+    }, 1200);
+    setTimeout(function() {
+      toast.className = 'toast';
+    }, 1500);
+  }
+
+  // --- Events ---
+
+  function onKeyDown(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      saveFile();
+    }
+  }
+
+  function onTextareaInput(e) {
+    var cat = findCategory(appState.selectedCategoryId);
+    if (cat) {
+      cat.content = e.target.value;
+      markDirty();
+    }
+  }
+
+  // --- Title ---
+
+  function startRenameTitle() {
+    var titleEl = document.getElementById('app-title');
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'sidebar-title-input';
+    input.value = appState.title || 'LOCAMO';
+
+    var finished = false;
+    function finish(save) {
+      if (finished) return;
+      finished = true;
+      if (save && input.value.trim()) {
+        appState.title = input.value.trim().toUpperCase();
+        markDirty();
+      }
+      var span = document.createElement('span');
+      span.id = 'app-title';
+      span.textContent = appState.title || 'LOCAMO';
+      span.addEventListener('click', startRenameTitle);
+      input.replaceWith(span);
+    }
+
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+      if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('blur', function() { finish(true); });
+
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
+  }
+
+  // --- Theme ---
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    var opts = document.querySelectorAll('.theme-opt');
+    opts.forEach(function(btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-theme-val') === theme);
+    });
+  }
+
+  function setTheme(theme) {
+    appState.theme = theme;
+    applyTheme(theme);
+    markDirty();
+  }
+
+  function onBeforeUnload(e) {
+    if (isDirty) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  }
+
+  // --- Init ---
+
+  function init() {
+    appState = loadData();
+    if (!appState.theme) appState.theme = 'dark';
+    if (!appState.title) appState.title = 'LOCAMO';
+    applyTheme(appState.theme);
+
+    var titleEl = document.getElementById('app-title');
+    titleEl.textContent = appState.title;
+    titleEl.addEventListener('click', startRenameTitle);
+
+    var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    if (!isMac) {
+      document.getElementById('save-hint').innerHTML = '<kbd>Ctrl</kbd><kbd>S</kbd>';
+    }
+
+    document.querySelectorAll('.theme-opt').forEach(function(btn) {
+      btn.addEventListener('click', function() { setTheme(btn.getAttribute('data-theme-val')); });
+    });
+    document.getElementById('editor-textarea').addEventListener('input', onTextareaInput);
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    render();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+
+</body></html>
+LOCAMO_EOF
+```
+
+Then open it in your browser:
+
+```
+open ~/Documents/locamo.html
+```
+
+## Usage
+
+| Action | How |
+|--------|-----|
+| **Save** | `⌘S` (Mac) / `Ctrl+S` (Windows/Linux) |
+| **Add page** | Click `+ Add page` in the sidebar |
+| **Delete page** | Hover over a page, click `×` |
+| **Rename page** | Double-click a page name |
+| **Switch theme** | Click `Light` / `Dark` in the sidebar |
+| **Rename title** | Click the app title (LOCAMO) in the sidebar |
+
+> The first save will show a file picker dialog. After that, `⌘S` saves directly without any dialog.
+
+## How It Works
+
+LOCAMO is a self-modifying HTML file inspired by [TiddlyWiki](https://tiddlywiki.com/). All your data is stored as JSON inside a `<script type="application/json">` tag within the HTML file itself. When you save:
+
+1. The app serializes your current state (pages, theme, title) into JSON
+2. Updates the embedded JSON in the DOM
+3. Captures the entire HTML via `document.documentElement.outerHTML`
+4. Writes it back to the same file using the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API)
+
+No external database, no cloud sync, no server — your data lives in the file and nowhere else.
