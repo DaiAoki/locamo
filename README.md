@@ -9,6 +9,7 @@ A local-first memo app that runs entirely in a single HTML file. No server, no b
 - **Blazing fast** — A single HTML file with zero network requests. It loads instantly.
 - **Fully offline** — Works via `file://` with no internet connection required.
 - **Hackable** — It's just HTML, CSS, and JavaScript. Customize the UI however you like by editing the file directly.
+- **AI-agent friendly** — Symlink `locamo.html` into each of your project directories and create a page per project. AI coding agents (like Claude Code) can then read and update your TODOs across all projects through a single shared file.
 
 ## Screenshots
 
