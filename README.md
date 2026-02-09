@@ -2,6 +2,14 @@
 
 A local-first memo app that runs entirely in a single HTML file. No server, no build tools, no dependencies — just open it in your browser and start writing.
 
+## Why LOCAMO?
+
+- **Instant access** — Bookmark it or add it to your launcher. Your notes are one click away, always.
+- **No app switching** — It runs in your browser, so there's no separate memo app to install or open.
+- **Blazing fast** — A single HTML file with zero network requests. It loads instantly.
+- **Fully offline** — Works via `file://` with no internet connection required.
+- **Hackable** — It's just HTML, CSS, and JavaScript. Customize the UI however you like by editing the file directly.
+
 ## Screenshots
 
 | Dark | Light |
