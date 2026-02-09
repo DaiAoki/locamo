@@ -140,7 +140,6 @@ kbd {
 .btn-add-page {
   display: flex;
   align-items: center;
-  justify-content: center;
   width: 100%;
   padding: 6px 8px;
   border: none;
@@ -151,11 +150,24 @@ kbd {
   font-size: 12px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  gap: 4px;
+}
+
+.btn-add-page .shortcut-label {
+  margin-left: auto;
 }
 
 .btn-add-page:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.shortcut-label {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .category-list {
@@ -338,6 +350,15 @@ kbd {
   gap: 12px;
 }
 
+.shortcut-hints {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
 .status-saved {
   color: #6a8;
   transition: opacity 0.3s;
@@ -415,23 +436,27 @@ kbd {
         <button class="theme-opt active" data-theme-val="dark">Dark</button>
       </div>
     </div>
-    <ul class="category-list" id="category-list"><li><button class="btn-add-page">+ Add page</button></li></ul>
+    <ul class="category-list" id="category-list"></ul>
   </aside>
 
   <main class="editor" id="editor-area">
     <div class="editor-header">
       <span id="editor-header"></span>
-      <span id="save-hint" class="unsaved"><kbd>⌘</kbd>+<kbd>S</kbd> to save</span>
+      <span id="save-hint"><kbd>⌘</kbd>+<kbd>S</kbd> to save</span>
     </div>
-    <textarea class="editor-textarea" id="editor-textarea" placeholder="Click + to create your first page" disabled=""></textarea>
+    <textarea class="editor-textarea" id="editor-textarea" placeholder="Click + to create your first page" disabled></textarea>
   </main>
 
   <footer class="statusbar">
-    <span id="status-message" class=""></span>
+    <span class="shortcut-hints" id="shortcut-hints">
+      <kbd>⌥</kbd><kbd>N</kbd> new
+      <kbd>⌥</kbd><kbd>↑</kbd><kbd>↓</kbd> switch
+    </span>
+    <span id="status-message"></span>
   </footer>
 </div>
 
-<div class="toast" id="toast">Saved</div>
+<div class="toast" id="toast"></div>
 
 <script id="app-data" type="application/json">{
   "version": 1,
@@ -448,6 +473,8 @@ kbd {
   var appState = { version: 1, selectedCategoryId: null, categories: [] };
   var isDirty = false;
   var fileHandle = null;
+  var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  var modKey = isMac ? '⌥' : 'Alt';
 
   // --- Data ---
 
@@ -513,6 +540,9 @@ kbd {
       });
 
       li.appendChild(nameSpan);
+      if (cat.id === appState.selectedCategoryId) {
+        li.appendChild(makeShortcutLabel([modKey, '↑', '↓']));
+      }
       li.appendChild(delBtn);
       list.appendChild(li);
     });
@@ -521,6 +551,7 @@ kbd {
     var addBtn = document.createElement('button');
     addBtn.className = 'btn-add-page';
     addBtn.textContent = '+ Add page';
+    addBtn.appendChild(makeShortcutLabel([modKey, 'N']));
     addBtn.addEventListener('click', addCategory);
     addLi.appendChild(addBtn);
     list.appendChild(addLi);
@@ -558,6 +589,17 @@ kbd {
 
   function generateId() {
     return 'cat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+  }
+
+  function makeShortcutLabel(keys) {
+    var span = document.createElement('span');
+    span.className = 'shortcut-label';
+    keys.forEach(function(k) {
+      var kbd = document.createElement('kbd');
+      kbd.textContent = k;
+      span.appendChild(kbd);
+    });
+    return span;
   }
 
   function markDirty() {
@@ -610,6 +652,20 @@ kbd {
     render();
 
     document.getElementById('editor-textarea').focus();
+  }
+
+  function selectNextCategory() {
+    if (appState.categories.length === 0) return;
+    var idx = appState.categories.findIndex(function(c) { return c.id === appState.selectedCategoryId; });
+    var next = (idx + 1) % appState.categories.length;
+    selectCategory(appState.categories[next].id);
+  }
+
+  function selectPrevCategory() {
+    if (appState.categories.length === 0) return;
+    var idx = appState.categories.findIndex(function(c) { return c.id === appState.selectedCategoryId; });
+    var prev = idx <= 0 ? appState.categories.length - 1 : idx - 1;
+    selectCategory(appState.categories[prev].id);
   }
 
   function startRename(id) {
@@ -701,6 +757,18 @@ kbd {
       e.preventDefault();
       saveFile();
     }
+    if (e.altKey && (e.key === 'n' || e.code === 'KeyN')) {
+      e.preventDefault();
+      addCategory();
+    }
+    if (e.altKey && e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectNextCategory();
+    }
+    if (e.altKey && e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectPrevCategory();
+    }
   }
 
   function onTextareaInput(e) {
@@ -781,9 +849,10 @@ kbd {
     titleEl.textContent = appState.title;
     titleEl.addEventListener('click', startRenameTitle);
 
-    var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     if (!isMac) {
-      document.getElementById('save-hint').innerHTML = '<kbd>Ctrl</kbd><kbd>S</kbd>';
+      document.getElementById('save-hint').innerHTML = '<kbd>Ctrl</kbd>+<kbd>S</kbd> to save';
+      document.getElementById('shortcut-hints').innerHTML =
+        '<kbd>Alt</kbd>+<kbd>N</kbd> new <kbd>Alt</kbd>+<kbd>↑</kbd><kbd>↓</kbd> switch';
     }
 
     document.querySelectorAll('.theme-opt').forEach(function(btn) {
@@ -803,7 +872,5 @@ kbd {
   }
 })();
 </script>
-
-
 
 </body></html>

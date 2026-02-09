@@ -25,6 +25,7 @@ A local-first memo app that runs entirely in a single HTML file. No server, no b
 - **Plain text editor** with monospace font
 - **Save in place** with `⌘S` / `Ctrl+S` using the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API)
 - **Dark / Light theme** toggle
+- **Keyboard shortcuts** — `⌥N` to create a page, `⌥↑/↓` to switch pages (works even while typing)
 - **Unsaved changes indicator** — save hint pulses orange when you have unsaved edits
 - **Customizable app title** — click the title to rename
 
@@ -190,7 +191,6 @@ kbd {
 .btn-add-page {
   display: flex;
   align-items: center;
-  justify-content: center;
   width: 100%;
   padding: 6px 8px;
   border: none;
@@ -201,11 +201,24 @@ kbd {
   font-size: 12px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  gap: 4px;
+}
+
+.btn-add-page .shortcut-label {
+  margin-left: auto;
 }
 
 .btn-add-page:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.shortcut-label {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .category-list {
@@ -388,6 +401,15 @@ kbd {
   gap: 12px;
 }
 
+.shortcut-hints {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
 .status-saved {
   color: #6a8;
   transition: opacity 0.3s;
@@ -477,6 +499,10 @@ kbd {
   </main>
 
   <footer class="statusbar">
+    <span class="shortcut-hints" id="shortcut-hints">
+      <kbd>⌥</kbd><kbd>N</kbd> new
+      <kbd>⌥</kbd><kbd>↑</kbd><kbd>↓</kbd> switch
+    </span>
     <span id="status-message"></span>
   </footer>
 </div>
@@ -498,6 +524,8 @@ kbd {
   var appState = { version: 1, selectedCategoryId: null, categories: [] };
   var isDirty = false;
   var fileHandle = null;
+  var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  var modKey = isMac ? '⌥' : 'Alt';
 
   // --- Data ---
 
@@ -563,6 +591,9 @@ kbd {
       });
 
       li.appendChild(nameSpan);
+      if (cat.id === appState.selectedCategoryId) {
+        li.appendChild(makeShortcutLabel([modKey, '↑', '↓']));
+      }
       li.appendChild(delBtn);
       list.appendChild(li);
     });
@@ -571,6 +602,7 @@ kbd {
     var addBtn = document.createElement('button');
     addBtn.className = 'btn-add-page';
     addBtn.textContent = '+ Add page';
+    addBtn.appendChild(makeShortcutLabel([modKey, 'N']));
     addBtn.addEventListener('click', addCategory);
     addLi.appendChild(addBtn);
     list.appendChild(addLi);
@@ -608,6 +640,17 @@ kbd {
 
   function generateId() {
     return 'cat-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+  }
+
+  function makeShortcutLabel(keys) {
+    var span = document.createElement('span');
+    span.className = 'shortcut-label';
+    keys.forEach(function(k) {
+      var kbd = document.createElement('kbd');
+      kbd.textContent = k;
+      span.appendChild(kbd);
+    });
+    return span;
   }
 
   function markDirty() {
@@ -660,6 +703,20 @@ kbd {
     render();
 
     document.getElementById('editor-textarea').focus();
+  }
+
+  function selectNextCategory() {
+    if (appState.categories.length === 0) return;
+    var idx = appState.categories.findIndex(function(c) { return c.id === appState.selectedCategoryId; });
+    var next = (idx + 1) % appState.categories.length;
+    selectCategory(appState.categories[next].id);
+  }
+
+  function selectPrevCategory() {
+    if (appState.categories.length === 0) return;
+    var idx = appState.categories.findIndex(function(c) { return c.id === appState.selectedCategoryId; });
+    var prev = idx <= 0 ? appState.categories.length - 1 : idx - 1;
+    selectCategory(appState.categories[prev].id);
   }
 
   function startRename(id) {
@@ -751,6 +808,18 @@ kbd {
       e.preventDefault();
       saveFile();
     }
+    if (e.altKey && (e.key === 'n' || e.code === 'KeyN')) {
+      e.preventDefault();
+      addCategory();
+    }
+    if (e.altKey && e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectNextCategory();
+    }
+    if (e.altKey && e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectPrevCategory();
+    }
   }
 
   function onTextareaInput(e) {
@@ -831,9 +900,10 @@ kbd {
     titleEl.textContent = appState.title;
     titleEl.addEventListener('click', startRenameTitle);
 
-    var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     if (!isMac) {
-      document.getElementById('save-hint').innerHTML = '<kbd>Ctrl</kbd><kbd>S</kbd>';
+      document.getElementById('save-hint').innerHTML = '<kbd>Ctrl</kbd>+<kbd>S</kbd> to save';
+      document.getElementById('shortcut-hints').innerHTML =
+        '<kbd>Alt</kbd>+<kbd>N</kbd> new <kbd>Alt</kbd>+<kbd>↑</kbd><kbd>↓</kbd> switch';
     }
 
     document.querySelectorAll('.theme-opt').forEach(function(btn) {
@@ -869,13 +939,16 @@ open ~/Documents/locamo.html
 | Action | How |
 |--------|-----|
 | **Save** | `⌘S` (Mac) / `Ctrl+S` (Windows/Linux) |
-| **Add page** | Click `+ Add page` in the sidebar |
+| **Add page** | Click `+ Add page` or `⌥N` (`Alt+N`) |
+| **Next page** | `⌥↓` (`Alt+↓`) |
+| **Previous page** | `⌥↑` (`Alt+↑`) |
 | **Delete page** | Hover over a page, click `×` |
 | **Rename page** | Double-click a page name |
 | **Switch theme** | Click `Light` / `Dark` in the sidebar |
 | **Rename title** | Click the app title (LOCAMO) in the sidebar |
 
 > The first save will show a file picker dialog. After that, `⌘S` saves directly without any dialog.
+> Keyboard shortcut hints are always visible in the status bar and sidebar.
 
 ## How It Works
 
