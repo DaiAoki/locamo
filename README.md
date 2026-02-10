@@ -960,3 +960,9 @@ LOCAMO is a self-modifying HTML file inspired by [TiddlyWiki](https://tiddlywiki
 4. Writes it back to the same file using the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API)
 
 No external database, no cloud sync, no server — your data lives in the file and nowhere else.
+
+## Sponsor
+
+If you find LOCAMO useful, please consider supporting development through GitHub Sponsors.
+
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-❤-ea4aaa?logo=github)](https://github.com/sponsors/DaiAoki)
