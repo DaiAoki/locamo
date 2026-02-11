@@ -641,7 +641,7 @@ kbd {
     markDirty();
     render();
 
-    document.getElementById('editor-textarea').focus();
+    setTimeout(function() { document.getElementById('editor-textarea').focus(); }, 0);
   }
 
   function deleteCategory(id) {
