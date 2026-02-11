@@ -667,7 +667,9 @@ kbd {
     appState.selectedCategoryId = id;
     render();
 
-    document.getElementById('editor-textarea').focus();
+    var textarea = document.getElementById('editor-textarea');
+    textarea.focus();
+    textarea.setSelectionRange(0, 0);
   }
 
   function selectNextCategory() {
