@@ -2,6 +2,10 @@
 
 A local-first memo app that runs entirely in a single HTML file. No server, no build tools, no dependencies — just open it in your browser and start writing.
 
+**Website:** https://daiaoki.github.io/locamo/
+
+<a href="https://www.producthunt.com/products/locamo-local-memo-app?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-locamo-local-memo-app" target="_blank" rel="noopener noreferrer"><img alt="LOCAMO: Local Memo App - Local-first, AI-friendly memo app in one HTML — no install | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1077648&theme=light&t=1770799880847"></a>
+
 ## Why LOCAMO?
 
 - **Instant access** — Bookmark it or add it to your launcher. Your notes are one click away, always.
