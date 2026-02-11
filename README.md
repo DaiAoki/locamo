@@ -950,6 +950,25 @@ open ~/Documents/locamo.html
 > The first save will show a file picker dialog. After that, `⌘S` saves directly without any dialog.
 > Keyboard shortcut hints are always visible in the status bar and sidebar.
 
+## Version Control
+
+You can track your memos with git. Since `~/Documents` contains many other files, use a `.gitignore` to only track `locamo.html`:
+
+```sh
+cd ~/Documents
+git init
+cat > .gitignore << 'EOF'
+**
+
+!.gitignore
+!locamo.html
+EOF
+git add .
+git commit -m "initial commit"
+```
+
+This ignores everything in `~/Documents` except `.gitignore` and `locamo.html`.
+
 ## How It Works
 
 LOCAMO is a self-modifying HTML file inspired by [TiddlyWiki](https://tiddlywiki.com/). All your data is stored as JSON inside a `<script type="application/json">` tag within the HTML file itself. When you save:
