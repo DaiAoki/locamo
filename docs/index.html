@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOCAMO — A local-first memo app in a single HTML file</title>
+<meta name="description" content="A local-first memo app that runs entirely in a single HTML file. No server, no build tools, no dependencies — just open it in your browser and start writing.">
+<meta property="og:title" content="LOCAMO">
+<meta property="og:description" content="A local-first memo app that runs entirely in a single HTML file. No server, no build tools, no dependencies.">
+<meta property="og:image" content="https://daiaoki.github.io/locamo/screenshots/dark.png">
+<meta property="og:url" content="https://daiaoki.github.io/locamo/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="LOCAMO">
+<meta name="twitter:description" content="A local-first memo app in a single HTML file.">
+<meta name="twitter:image" content="https://daiaoki.github.io/locamo/screenshots/dark.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --max-width: 1080px;
+  --section-spacing: 96px;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #191919;
+  --bg-sidebar: #141414;
+  --bg-active: #2a2a2a;
+  --bg-hover: #222;
+  --text-primary: #d4d4d4;
+  --text-secondary: #777;
+  --text-muted: #555;
+  --border: #2a2a2a;
+  --accent: #888;
+  --kbd-border: #333;
+  --unsaved-color: #e8a44a;
+  --btn-primary-bg: #e8a44a;
+  --btn-primary-text: #141414;
+  --btn-secondary-border: #555;
+  --btn-secondary-text: #d4d4d4;
+  --code-bg: #141414;
+  --shadow-screenshot: rgba(0, 0, 0, 0.5);
+  --nav-bg: rgba(25, 25, 25, 0.85);
+}
+
+[data-theme="light"] {
+  --bg-primary: #fff;
+  --bg-sidebar: #f5f5f5;
+  --bg-active: #e8e8e8;
+  --bg-hover: #eee;
+  --text-primary: #2c2c2c;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --border: #e0e0e0;
+  --accent: #666;
+  --kbd-border: #ccc;
+  --unsaved-color: #c47a15;
+  --btn-primary-bg: #c47a15;
+  --btn-primary-text: #fff;
+  --btn-secondary-border: #ccc;
+  --btn-secondary-text: #2c2c2c;
+  --code-bg: #f5f5f5;
+  --shadow-screenshot: rgba(0, 0, 0, 0.12);
+  --nav-bg: rgba(255, 255, 255, 0.85);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Nav */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.15s;
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+}
+
+.nav-github-icon {
+  width: 20px;
+  height: 20px;
+  fill: var(--text-secondary);
+  transition: fill 0.15s;
+  vertical-align: middle;
+}
+
+.nav-link:hover .nav-github-icon {
+  fill: var(--text-primary);
+}
+
+.theme-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.theme-opt {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.theme-opt:hover {
+  color: var(--text-secondary);
+}
+
+.theme-opt.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+/* Container */
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Hero */
+.hero {
+  padding: 80px 0 64px;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  line-height: 1.1;
+}
+
+.hero-tagline {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--text-primary);
+  max-width: 640px;
+  margin: 0 auto 12px;
+  line-height: 1.5;
+}
+
+.hero-sub {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: 560px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+}
+
+.cta-group {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 56px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  border: none;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--shadow-screenshot);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--btn-secondary-text);
+  border: 1px solid var(--btn-secondary-border);
+}
+
+.hero-screenshot {
+  max-width: 900px;
+  margin: 0 auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: 0 12px 48px var(--shadow-screenshot);
+  opacity: 0;
+  transform: translateY(24px) scale(0.98);
+  animation: hero-enter 0.7s ease 0.2s forwards;
+}
+
+.hero-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@keyframes hero-enter {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Section common */
+.section {
+  padding: var(--section-spacing) 0;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.section-heading {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* Why — Terminal style */
+.why-terminal {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.why-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
+}
+
+.why-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.4;
+}
+
+.why-titlebar-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 8px;
+}
+
+.why-body {
+  padding: 20px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 2;
+}
+
+.why-line {
+  display: block;
+}
+
+.why-comment {
+  color: var(--text-muted);
+}
+
+.why-key {
+  color: var(--unsaved-color);
+  font-weight: 600;
+}
+
+.why-val {
+  color: var(--text-secondary);
+}
+
+/* Features */
+.features-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.features-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.feature-item {
+  padding-left: 16px;
+  border-left: 2px solid var(--border);
+}
+
+.feature-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.feature-item-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.features-screenshot {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: 0 8px 32px var(--shadow-screenshot);
+}
+
+.features-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Get Started */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.step {
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px 24px;
+}
+
+.step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.step-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.step-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.step-code {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.start-cta {
+  text-align: center;
+}
+
+/* Browser note */
+.browser-note {
+  text-align: center;
+  padding: 24px;
+  margin-top: 48px;
+  font-size: 13px;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-sidebar);
+}
+
+/* Sponsor */
+.sponsor {
+  text-align: center;
+  padding: 64px 0;
+  border-top: 1px solid var(--border);
+}
+
+.sponsor-text {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.btn-sponsor {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #fff;
+  border: none;
+  background: #c96198;
+  transition: opacity 0.15s;
+}
+
+.btn-sponsor:hover {
+  opacity: 0.85;
+}
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border);
+  background: var(--bg-sidebar);
+  padding: 32px 0;
+}
+
+.footer-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.footer-links {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer-links a:hover {
+  color: var(--text-primary);
+}
+
+/* Fade-in animation */
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .hero-screenshot {
+    opacity: 1;
+    transform: none;
+  }
+  .fade-in {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Tablet */
+@media (max-width: 768px) {
+  :root {
+    --section-spacing: 64px;
+  }
+
+  .hero {
+    padding: 56px 0 48px;
+  }
+
+  .hero-title {
+    font-size: 40px;
+  }
+
+  .hero-tagline {
+    font-size: 18px;
+  }
+
+  .features-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .features-screenshot {
+    order: -1;
+  }
+
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading {
+    font-size: 26px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  :root {
+    --section-spacing: 48px;
+  }
+
+  .hero {
+    padding: 40px 0 32px;
+  }
+
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .hero-tagline {
+    font-size: 16px;
+  }
+
+  .hero-sub {
+    font-size: 14px;
+  }
+
+  .cta-group {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 40px;
+  }
+
+  .btn {
+    justify-content: center;
+  }
+
+  .why-body {
+    font-size: 11px;
+    padding: 16px;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo">LOCAMO</a>
+    <div class="nav-right">
+      <a href="https://github.com/DaiAoki/locamo" class="nav-link" target="_blank" rel="noopener">
+        <svg class="nav-github-icon" viewBox="0 0 16 16" aria-label="GitHub"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <div class="theme-toggle" id="theme-toggle">
+        <button class="theme-opt" data-theme-val="light">Light</button>
+        <button class="theme-opt active" data-theme-val="dark">Dark</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1 class="hero-title">LOCAMO</h1>
+    <p class="hero-tagline">A local-first memo app that runs entirely in a single HTML file.</p>
+    <p class="hero-sub">No server, no build tools, no dependencies &mdash; just open it in your browser and start writing.</p>
+    <div class="cta-group">
+      <a href="https://github.com/DaiAoki/locamo" class="btn btn-primary">Download locamo.html</a>
+      <a href="https://github.com/DaiAoki/locamo" class="btn btn-secondary" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+    <div class="hero-screenshot">
+      <img src="screenshots/dark.png" alt="LOCAMO dark mode interface" width="3456" height="1880" loading="eager">
+    </div>
+  </div>
+</section>
+
+<!-- Why LOCAMO? -->
+<section class="section fade-in">
+  <div class="container">
+    <div class="section-header">
+      <p class="section-title">Why LOCAMO?</p>
+      <h2 class="section-heading">Everything you need, nothing you don't</h2>
+    </div>
+    <div class="why-terminal">
+      <div class="why-titlebar">
+        <span class="why-dot"></span>
+        <span class="why-dot"></span>
+        <span class="why-dot"></span>
+        <span class="why-titlebar-text">why-locamo.md</span>
+      </div>
+      <div class="why-body">
+        <span class="why-line"><span class="why-comment">// What you get with a single HTML file</span></span>
+        <span class="why-line"></span>
+        <span class="why-line"><span class="why-key">instant_access</span>  <span class="why-val">&mdash; Bookmark it. Your notes are one click away.</span></span>
+        <span class="why-line"><span class="why-key">no_app_switch</span>   <span class="why-val">&mdash; Runs in your browser. No extra app to open.</span></span>
+        <span class="why-line"><span class="why-key">blazing_fast</span>    <span class="why-val">&mdash; One file. Zero network requests. Instant.</span></span>
+        <span class="why-line"><span class="why-key">zero_infra</span>      <span class="why-val">&mdash; No database, no server. Just a file.</span></span>
+        <span class="why-line"><span class="why-key">fully_offline</span>   <span class="why-val">&mdash; Works via file:// with no internet.</span></span>
+        <span class="why-line"><span class="why-key">hackable</span>        <span class="why-val">&mdash; It's HTML, CSS, JS. Edit anything.</span></span>
+        <span class="why-line"><span class="why-key">ai_friendly</span>     <span class="why-val">&mdash; Symlink it. AI agents read your TODOs.</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="section fade-in">
+  <div class="container">
+    <div class="section-header">
+      <p class="section-title">Features</p>
+      <h2 class="section-heading">Simple, powerful, and self-contained</h2>
+    </div>
+    <div class="features-layout">
+      <ul class="features-list">
+        <li class="feature-item">
+          <p class="feature-item-title">Self-contained single HTML file</p>
+          <p class="feature-item-desc">UI, logic, and data all in one file &mdash; TiddlyWiki-style</p>
+        </li>
+        <li class="feature-item">
+          <p class="feature-item-title">Works offline</p>
+          <p class="feature-item-desc">Open via file:// protocol &mdash; no server needed</p>
+        </li>
+        <li class="feature-item">
+          <p class="feature-item-title">Multi-page memo organization</p>
+          <p class="feature-item-desc">Add, delete, and rename pages freely</p>
+        </li>
+        <li class="feature-item">
+          <p class="feature-item-title">Plain text editor</p>
+          <p class="feature-item-desc">Monospace font for distraction-free writing</p>
+        </li>
+        <li class="feature-item">
+          <p class="feature-item-title">Save in place</p>
+          <p class="feature-item-desc">Cmd+S / Ctrl+S using the File System Access API</p>
+        </li>
+        <li class="feature-item">
+          <p class="feature-item-title">Dark / Light theme</p>
+          <p class="feature-item-desc">Toggle between themes with a click</p>
+        </li>
+        <li class="feature-item">
+          <p class="feature-item-title">Keyboard shortcuts</p>
+          <p class="feature-item-desc">Option+N to create, Option+Up/Down to switch pages</p>
+        </li>
+        <li class="feature-item">
+          <p class="feature-item-title">Unsaved changes indicator</p>
+          <p class="feature-item-desc">Save hint pulses orange when you have unsaved edits</p>
+        </li>
+        <li class="feature-item">
+          <p class="feature-item-title">Customizable app title</p>
+          <p class="feature-item-desc">Click the title to rename your LOCAMO instance</p>
+        </li>
+      </ul>
+      <div class="features-screenshot">
+        <img src="screenshots/light.png" alt="LOCAMO light mode interface" width="3456" height="1880" loading="lazy">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Get Started -->
+<section class="section fade-in">
+  <div class="container">
+    <div class="section-header">
+      <p class="section-title">Get Started</p>
+      <h2 class="section-heading">Three steps. No install required.</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3 class="step-title">Download</h3>
+        <p class="step-desc">Clone the repository or copy the HTML file.</p>
+        <div class="step-code">$ git clone https://github.com/daiaoki/locamo.git
+$ cp locamo/locamo.html ~/Documents/</div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3 class="step-title">Open</h3>
+        <p class="step-desc">Double-click the file or open it in Chrome / Edge.</p>
+        <div class="step-code">$ open ~/Documents/locamo.html</div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3 class="step-title">Write</h3>
+        <p class="step-desc">Start creating pages and writing. Save anytime with Cmd+S.</p>
+        <div class="step-code">That's it. No config needed.</div>
+      </div>
+    </div>
+    <div class="start-cta">
+      <div class="cta-group">
+        <a href="https://github.com/DaiAoki/locamo" class="btn btn-primary">Download locamo.html</a>
+        <a href="https://github.com/DaiAoki/locamo" class="btn btn-secondary" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+      <div class="browser-note">
+        Requires Google Chrome or Microsoft Edge. Firefox and Safari do not support the File System Access API.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Sponsor -->
+<section class="sponsor fade-in">
+  <div class="container">
+    <p class="sponsor-text">If you find LOCAMO useful, consider supporting its development.</p>
+    <a href="https://github.com/sponsors/DaiAoki" class="btn-sponsor" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4.25 2.5c-1.336 0-2.75 1.164-2.75 3 0 2.15 1.58 4.144 3.365 5.682A20.565 20.565 0 008 13.393a20.561 20.561 0 003.135-2.211C12.92 9.644 14.5 7.65 14.5 5.5c0-1.836-1.414-3-2.75-3-1.373 0-2.609.986-3.029 2.456a.749.749 0 01-1.442 0C6.859 3.486 5.623 2.5 4.25 2.5z"/></svg>
+      Sponsor on GitHub
+    </a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <span>LOCAMO &mdash; Built by Dai Aoki</span>
+    <div class="footer-links">
+      <a href="https://github.com/DaiAoki/locamo" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/sponsors/DaiAoki" target="_blank" rel="noopener">Sponsor</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function() {
+  'use strict';
+
+  var html = document.documentElement;
+
+  // Theme: check localStorage, then prefers-color-scheme, then default to dark
+  var stored = localStorage.getItem('locamo-lp-theme');
+  if (stored) {
+    html.setAttribute('data-theme', stored);
+  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+    html.setAttribute('data-theme', 'light');
+  }
+
+  // Sync toggle button active state
+  function syncToggle() {
+    var current = html.getAttribute('data-theme');
+    document.querySelectorAll('.theme-opt').forEach(function(btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-theme-val') === current);
+    });
+  }
+  syncToggle();
+
+  // Theme toggle click
+  document.querySelectorAll('.theme-opt').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var theme = btn.getAttribute('data-theme-val');
+      html.setAttribute('data-theme', theme);
+      localStorage.setItem('locamo-lp-theme', theme);
+      syncToggle();
+    });
+  });
+
+  // Scroll fade-in with IntersectionObserver
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(function(el) {
+      observer.observe(el);
+    });
+  } else {
+    // Fallback: show everything
+    document.querySelectorAll('.fade-in').forEach(function(el) {
+      el.classList.add('visible');
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
