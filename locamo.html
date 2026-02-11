@@ -66,7 +66,7 @@ body {
 
 .app {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 280px 1fr;
   grid-template-rows: 1fr 28px;
   height: 100vh;
 }
@@ -86,7 +86,7 @@ body {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 12px 12px 8px;
+  padding: 14px 16px 10px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -174,7 +174,11 @@ kbd {
   list-style: none;
   flex: 1;
   overflow-y: auto;
-  padding: 0 6px 12px;
+  padding: 0 10px 12px;
+}
+
+.category-list > li + li {
+  margin-top: 4px;
 }
 
 .category-list::-webkit-scrollbar {
@@ -187,6 +191,7 @@ kbd {
 }
 
 .category-item {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 6px 8px;
@@ -202,6 +207,17 @@ kbd {
 
 .category-item.active {
   background: var(--bg-active);
+}
+
+.category-item .shortcut-label {
+  position: absolute;
+  right: 22px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.category-item:hover .shortcut-label {
+  opacity: 1;
 }
 
 .category-name {
@@ -715,7 +731,14 @@ kbd {
 
     document.getElementById('app-data').textContent = json;
 
+    var toast = document.getElementById('toast');
+    var savedToastClass = toast.className;
+    var savedToastText = toast.textContent;
+    toast.className = 'toast';
+    toast.textContent = '';
     var html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+    toast.className = savedToastClass;
+    toast.textContent = savedToastText;
 
     try {
       if (!fileHandle) {
@@ -759,6 +782,7 @@ kbd {
     }
     if (e.altKey && (e.key === 'n' || e.code === 'KeyN')) {
       e.preventDefault();
+      document.getElementById('editor-textarea').blur();
       addCategory();
     }
     if (e.altKey && e.key === 'ArrowDown') {
